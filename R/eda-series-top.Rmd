@@ -1,0 +1,112 @@
+---
+title: "EDA: séries populares no IMDB"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, message=FALSE, include=FALSE}
+# Instale esses pacotes antes de gerar o HTML:
+# install.packages(c("dplyr", "GGally", "ggplot2", "here", "readr", "scales"))
+library(dplyr)
+library(GGally)
+library(ggplot2)
+library(here)
+library(readr)
+library(scales)
+
+ep_series_top <- read_csv(here("data", "episodios_series_top.csv"))
+```
+
+# Dados
+
+## Tabela com os dados
+
+```{r}
+ep_series_top %>%
+  select(nome_serie, nome_episodio, avaliacao_media, num_votos, num_temporada,
+         num_episodio, ano, duracao_minutos, generos) %>%
+  arrange(desc(num_votos), desc(avaliacao_media))
+```
+
+# Variância
+
+## Distribuição das avaliações médias por episódio
+
+```{r}
+ggplot(ep_series_top, aes(avaliacao_media)) +
+  geom_histogram()
+```
+
+
+## Distribuição da quantidade de votos por episódio
+
+```{r}
+ggplot(ep_series_top, aes(num_votos)) +
+  geom_histogram() +
+  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  annotation_logticks(sides = "b") 
+```
+
+
+## Distribuição da quantidade de episódios por série
+
+```{r}
+num_episodios <- ep_series_top %>%
+  count(nome_serie, sort = TRUE)
+
+ggplot(num_episodios, aes(n)) +
+  geom_histogram()
+
+num_episodios
+```
+
+
+
+# Covariância
+
+## Comparação das avaliações de episódios por série
+
+```{r}
+# Filtrando as 30 séries com maiores medianas de avaliações
+series_top_30_avaliacoes <- ep_series_top %>%
+  group_by(id_serie) %>%
+  summarise(mediana_avaliacao_serie = median(avaliacao_media)) %>%
+  top_n(30, mediana_avaliacao_serie) %>%
+  left_join(ep_series_top, by = "id_serie") %>%
+  mutate(nome_serie = reorder(nome_serie, mediana_avaliacao_serie))
+
+ggplot(series_top_30_avaliacoes, aes(nome_serie, avaliacao_media)) +
+    geom_boxplot() +
+    coord_flip() +
+    theme(axis.title.y = element_blank())
+```
+
+## Comparação das relações entre variáveis e correlações
+
+```{r, message=FALSE, warning=FALSE}
+ep_series_top %>%
+  select(-id_serie, -id_episodio, -nome_serie, -nome_episodio, -generos) %>%
+  ggpairs()
+```
+
+## Séries com maiores e menores variâncias nas avaliações
+
+```{r}
+ep_series_top %>%
+  filter(!is.na(avaliacao_media)) %>%
+  group_by(nome_serie) %>%
+  summarise(iqr = IQR(avaliacao_media),
+            variancia = var(avaliacao_media),
+            coeficiente_de_variacao = sd(avaliacao_media) / mean(avaliacao_media),
+            n_outliers = length(boxplot.stats(avaliacao_media)$out),
+            min_avaliacao = min(avaliacao_media),
+            max_avaliacao = max(avaliacao_media)) %>%
+  arrange(desc(iqr))
+```

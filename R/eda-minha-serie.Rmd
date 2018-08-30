@@ -1,0 +1,261 @@
+---
+title: "Análise da série: The Big Bang Theory"
+author: "Lucas Magno"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+# Instale esses pacotes antes de gerar o HTML:
+# install.packages(c("dplyr", "GGally", "ggplot2", "here", "readr", "scales"))
+
+
+library(dplyr)
+library(ggplot2)
+library(here)
+library(readr)
+
+# Substitua o filtro com o nome da série que você deseja analisar
+episodios <- read_csv(here("data", "episodios_series_top.csv")) %>%
+  filter(nome_serie == "The Big Bang Theory")
+```
+
+# Apresentação
+
+The Big Bang Theory, frequentemente abreviada como "TBBT", é uma série de televisão norte-americana de comédia de situação criada por Chuck Lorre e Bill Prady, que estreou no canal CBS em 24 de setembro de 2007.
+
+Essa é uma Analise básica sobre a série.
+
+Lista de episodios. É o primeiro passo para começar a analise
+
+```{r}
+episodios%>%
+  select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada, "Avaliação"= avaliacao_media)
+
+```
+
+# Popularidade dos episódios
+
+Como será que é a votação dos episodios ? 
+
+Abaixo temos um grafico sobre isso
+
+```{r}
+ggplot(episodios, aes(num_votos)) +
+  geom_histogram() +
+  xlab("Avaliação dos Episodios") +
+  ylab("Quantidade de Episodios")
+
+```
+
+## Quantas avaliações tem por episódio?
+
+Podemos ver que geralmente os episodios tem 2.000 avaliações por episodio. 
+```{r}
+ggplot(episodios, aes(num_votos))+
+  geom_histogram(binwidth = 100)+
+  xlab("Quantidade de votos")+
+  ylab("Numero de Epiosodios")
+```
+
+## Qual o episódio mais popular e o menos popular?
+
+Mais POPULAR
+É o primeiro epiosodio, da primeira temporada.
+```{r}
+episodios%>%
+  top_n(1, num_votos)%>%
+    select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada, "Avaliação"= avaliacao_media)
+
+```
+
+Menos POPULAR
+É o episodio 22 da temporada 11
+```{r}
+episodios%>%
+  top_n(-1, num_votos)%>%
+    select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada, "Avaliação"= avaliacao_media)
+
+
+```
+
+
+## Qual a temporada mais popular e a menos popular?
+
+Melhor Temporada 
+A temporada mais popular geralmente é a que tem mais votos.
+E nesse caso foi a temporada: 
+
+```{r}
+Temp_melhor <- episodios%>%
+  group_by(num_temporada)%>%
+  summarise(votos_temporada = mean(num_votos))%>%
+  top_n(1, votos_temporada)
+Temp_melhor
+```
+
+Pior temporada
+Enquanto a pior:
+
+```{r}
+Temp_melhor <- episodios%>%
+  group_by(num_temporada)%>%
+  summarise(votos_temporada = mean(num_votos))%>%
+  top_n(-1, votos_temporada)
+Temp_melhor
+```
+
+
+
+# Qualidade dos episódios
+
+```{r}
+
+
+
+```
+
+## Qual a distribuição das avaliações por episódio? 
+
+Ná avaliação média, temos que  geralmente os episodios recebem notas entra 8,1 e 8,4.
+```{r}
+ggplot(episodios, aes(avaliacao_media)) +
+  geom_bar()+
+  xlab("Avaliação")+
+  ylab("Número de episodios")
+```
+
+
+
+## Qual o melhor e o pior episódio segundo o IMDB?
+
+Melhor Episodio segundo o IMDB
+
+Temos um empate com dois episodios com a melhor avaliação.
+
+```{r}
+Melhor_ep <- episodios%>%
+  top_n(1,avaliacao_media)
+Melhor_ep %>%
+    select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada, "Avaliação"= avaliacao_media)
+
+
+```
+Podemos desempatar pelo número de votos, ou seja quem tiver mais números de votos fica em primeiro...
+E o resultado foi : 
+```{r}
+  episodios %>%
+   top_n(1, avaliacao_media) %>%
+  top_n(1, num_votos)%>%
+  select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada)
+  
+```
+
+
+Pior episodio segundo o IMDB também temos 2 casos.
+```{r}
+Pior_ep <- episodios%>%
+  top_n(-1,avaliacao_media)
+
+Pior_ep%>%
+    select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada, "Avaliação"= avaliacao_media)
+
+```
+
+
+
+## Qual a melhor e a pior temporada segundo o IMDB?
+Melhor temporada : 
+```{r}
+episodios%>%
+  group_by(num_temporada)%>%
+  summarise(media_votos=mean(num_votos))%>%
+  top_n(1, media_votos)
+
+```
+
+Pior temporada
+```{r}
+episodios%>%
+  group_by(num_temporada)%>%
+  summarise(media_votos=mean(num_votos))%>%
+  top_n(-1, media_votos)
+
+```
+
+
+# Padrões ao longo do tempo
+```{r}
+
+```
+## As primeiras temporadas são melhores que as últimas?
+
+```{r}
+ggplot(episodios, aes(num_episodio, avaliacao_media)) +
+  geom_text(aes(label = num_episodio)) +
+  geom_line() +
+  facet_wrap(~ num_temporada)
+
+```
+
+
+## Os episódios no fim das temporadas são melhores que os do início?
+
+Bem, de acordo com o gráfico acima temos uma relação em que nos finais de temporada os episodios recebem mais notas.
+Como podemos ver bem nos graficos 10 e 12. Porém no gráfico 2 por exemplo o melhor avaliado foi um episodio bem no "meio" da temporada. 
+
+
+## Qual é a temporada mais regular?
+
+A temporada 6, nesse caso pode ser considerada a mais regular. 
+
+```{r}
+episodios%>%
+  ggplot(aes(num_temporada, avaliacao_media)) +
+  geom_point() +
+  geom_smooth() +
+  xlab("Temporadas") +
+  ylab("Número de votos") 
+```
+
+
+## Qual é a temporada mais instável?
+
+Pelo o gráfico acima temos que a temporada mais instavel é a 9.O grafico deixa isso bem claro na separação de suas avaliações.
+
+# Valores incomuns
+
+Sim. podemos ver isso nas temporadas: 1,9 e 11. São pontos bem afastados da curva.
+
+## Existem episódios outliers em termos de popularidade?
+
+Valores incomuns de número de votos em relação a outros episódios da série.
+
+Sim, na temporada 11 como podemos ver tanto no gráfico quanto abaixo.
+```{r}
+episodios%>%
+  top_n(-1, num_votos)%>%
+    select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada)
+
+```
+
+
+## Existem episódios outliers em termos de avaliação?
+
+Valores incomuns de avaliação em relação a outros episódios da série.
+
+Os outliers são mais os da temporada 9 e 10. 
+
+```{r}
+episodios%>%
+  top_n(-1, avaliacao_media)%>%
+    select("Nome do episodio" = nome_episodio, "Temporada" = num_temporada)
+
+```
